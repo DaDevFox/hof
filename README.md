@@ -47,4 +47,10 @@ A checklist of JavaScript-style higher-order functions implemented in Go.
 - [x] **`Pipe[A, B, C](f func(A) B, g func(B) C) func(A) C`** — Compose functions (left-to-right)
 - [x] **`Curry` patterns using closures** — Turn multi-arg func into chain of funcs
 
+## TODO: 
+
+- [ ] parallel version of all existing functions
+- [ ] N-way partition (int valued function)
+
+
 ---
