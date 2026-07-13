@@ -1,3 +1,3 @@
-module github.com/suryanshu-09/hof
+module github.com/DaDevFox/hof
 
 go 1.25.3
