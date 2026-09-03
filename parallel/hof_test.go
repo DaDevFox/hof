@@ -5,7 +5,7 @@ import (
 	"math"
 	"math/rand/v2"
 	"reflect"
-	// "slices"
+	"slices"
 	"testing"
 
 	hof "github.com/DaDevFox/hof"
@@ -131,38 +131,38 @@ func BenchmarkMapParallel_Uneven_CacheLinear(b *testing.B) {
 // 	}
 // }
 
-// func BenchmarkMapParallelStreaming(b *testing.B) {
-// 	for b.Loop() {
-// 		inputArr := [][]int{
-// 			{1, 2, 3, 4, 5},
-// 			{-4, 0, 69, 12},
-// 			{0},
-// 		}
-//
-// 		for range MAXARRSIZE {
-// 			arr := []int{}
-// 			for range MAXARRSIZE {
-// 				arr = append(arr, rand.IntN(1000))
-// 			}
-// 			inputArr = append(inputArr, arr)
-// 		}
-//
-// 		for _, val := range inputArr {
-// 			slices.Collect(hofparallel.MapParallelStreaming(hof.Stream(val), func(j int) string {
-// 				switch {
-// 				case j > 0:
-// 					return fmt.Sprintf("this is %d", j)
-// 				case j == 0:
-// 					return "this is empty"
-// 				case j < 0:
-// 					return fmt.Sprintf("this is a neg %d", int(math.Abs(float64(j))))
-// 				default:
-// 					return fmt.Sprintf("incorrect input got %d", j)
-// 				}
-// 			}, THREADS_TO_TEST))
-// 		}
-// 	}
-// }
+func BenchmarkMapParallelStreaming(b *testing.B) {
+	for b.Loop() {
+		inputArr := [][]int{
+			{1, 2, 3, 4, 5},
+			{-4, 0, 69, 12},
+			{0},
+		}
+
+		for range MAXARRSIZE {
+			arr := []int{}
+			for range MAXARRSIZE {
+				arr = append(arr, rand.IntN(1000))
+			}
+			inputArr = append(inputArr, arr)
+		}
+
+		for _, val := range inputArr {
+			slices.Collect(hofparallel.MapParallelStreaming(hof.Stream(val), func(j int) string {
+				switch {
+				case j > 0:
+					return fmt.Sprintf("this is %d", j)
+				case j == 0:
+					return "this is empty"
+				case j < 0:
+					return fmt.Sprintf("this is a neg %d", int(math.Abs(float64(j))))
+				default:
+					return fmt.Sprintf("incorrect input got %d", j)
+				}
+			}, THREADS_TO_TEST))
+		}
+	}
+}
 
 func BenchmarkMapParallel(b *testing.B) {
 	for b.Loop() {
