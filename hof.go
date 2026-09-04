@@ -8,8 +8,20 @@ import (
 
 // Core Array Methods
 
+func Stream[T any](arr []T) iter.Seq[T] {
+	return func(yield func(T) bool) {
+		for _, v := range arr {
+			proceed := yield(v)
+			if !proceed {
+				return
+			}
+		}
+	}
+}
+
 // Map : Transform each element
-func Map[E, T any](arr []E, transform func(E) T) iter.Seq[T] {
+// Collected (array) input, streaming output in serial, forwards direction
+func MapArray[E, T any](arr []E, transform func(E) T) iter.Seq[T] {
 	return func(yield func(T) bool) {
 		for _, v := range arr {
 			if !yield(transform(v)) {
@@ -19,8 +31,27 @@ func Map[E, T any](arr []E, transform func(E) T) iter.Seq[T] {
 	}
 }
 
+// Map : Transform each element
+// Collected (array) input + output in serial, forwards direction
+func MapToArray[E, T any](arr []E, transform func(E) T) []T {
+	return slices.Collect(MapArray(arr, transform))
+}
+
+// Map : Transform each element
+// Bidi streaming in serial, forwards direction
+func Map[E, T any](stream iter.Seq[E], transform func(E) T) iter.Seq[T] {
+	return func(yield func(T) bool) {
+		for v := range stream {
+			if !yield(transform(v)) {
+				return
+			}
+		}
+	}
+}
+
 // Filter : Keep elements that satisfy a condition
-func Filter[E any](arr []E, filter func(E) bool) iter.Seq[E] {
+// Collected (array) input, streaming output in serial, forwards direction
+func FilterArray[E any](arr []E, filter func(E) bool) iter.Seq[E] {
 	return func(yield func(E) bool) {
 		for _, v := range arr {
 			if filter(v) {
@@ -32,8 +63,28 @@ func Filter[E any](arr []E, filter func(E) bool) iter.Seq[E] {
 	}
 }
 
+// Filter : Keep elements that satisfy a condition
+// Collected (array) input + output in serial, forwards direction
+func FilterToArray[E any](arr []E, filter func(E) bool) []E {
+	return slices.Collect(FilterArray(arr, filter))
+}
+
+// Filter : Keep elements that satisfy a condition
+// Streaming in serial, forwards direction
+func Filter[E any](stream iter.Seq[E], filter func(E) bool) iter.Seq[E] {
+	return func(yield func(E) bool) {
+		for v := range stream {
+			if filter(v) {
+				if !yield(v) {
+					return
+				}
+			}
+		}
+	}
+}
+
 // Reduce : Accumulate values into one
-func Reduce[E any, T any](arr []E, fn func(T, E) T, init T) T {
+func Reduce[E, T any](arr []E, fn func(T, E) T, init T) T {
 	acc := init
 	for _, v := range arr {
 		acc = fn(acc, v)
@@ -41,9 +92,23 @@ func Reduce[E any, T any](arr []E, fn func(T, E) T, init T) T {
 	return acc
 }
 
+// Reduce : Accumulate values into one
+func ReduceStreaming[E, T any](stream iter.Seq[E], fn func(T, E) T, init T) T {
+	return Reduce(slices.Collect(stream), fn, init)
+}
+
 // ForEach : Apply side-effects (printing, logging, etc.)
-func ForEach[E any](arr []E, fn func(E)) {
+// Collected (array) input + execution in serial
+func ForEachArray[E any](arr []E, fn func(E)) {
 	for _, v := range arr {
+		fn(v)
+	}
+}
+
+// ForEach : Apply side-effects (printing, logging, etc.).
+// Streaming in serial, forwards direction
+func ForEach[E any](stream iter.Seq[E], fn func(E)) {
+	for v := range stream {
 		fn(v)
 	}
 }
@@ -59,9 +124,31 @@ func Find[E any](arr []E, fn func(E) bool) (E, bool) {
 	return out, false
 }
 
+// Find : Return first element satisfying condition
+func FindInSteram[E any](stream iter.Seq[E], fn func(E) bool) (E, bool) {
+	var out E
+	for v := range stream {
+		if fn(v) {
+			return v, true
+		}
+	}
+	return out, false
+}
+
+// Some : Return true if any element matches
+func SomeInStream[E any](arr iter.Seq[E], fn func(E) bool) bool {
+	return slices.ContainsFunc(slices.Collect(arr), fn)
+}
+
 // Some : Return true if any element matches
 func Some[E any](arr []E, fn func(E) bool) bool {
 	return slices.ContainsFunc(arr, fn)
+}
+
+func EveryInStream[E any](arr iter.Seq[E], fn func(E) bool) bool {
+	return ReduceStreaming(arr, func(accum bool, item E) bool {
+		return accum && fn(item)
+	}, false)
 }
 
 // Every : Return true if all elements match
