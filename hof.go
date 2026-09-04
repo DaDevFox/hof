@@ -8,10 +8,6 @@ import (
 
 // Core Array Methods
 
-// Filter : Keep elements that satisfy a condition
-func Filter[E any](arr []E, filter func(E) bool) iter.Seq[E] {
-	return func(yield func(E) bool) {
-		for _, v := range arr {
 func Stream[T any](arr []T) iter.Seq[T] {
 	return func(yield func(T) bool) {
 		for _, v := range arr {
@@ -52,6 +48,32 @@ func Map[E, T any](stream iter.Seq[E], transform func(E) T) iter.Seq[T] {
 		}
 	}
 }
+
+// Filter : Keep elements that satisfy a condition
+// Collected (array) input, streaming output in serial, forwards direction
+func FilterArray[E any](arr []E, filter func(E) bool) iter.Seq[E] {
+	return func(yield func(E) bool) {
+		for _, v := range arr {
+			if filter(v) {
+				if !yield(v) {
+					return
+				}
+			}
+		}
+	}
+}
+
+// Filter : Keep elements that satisfy a condition
+// Collected (array) input + output in serial, forwards direction
+func FilterToArray[E any](arr []E, filter func(E) bool) []E {
+	return slices.Collect(FilterArray(arr, filter))
+}
+
+// Filter : Keep elements that satisfy a condition
+// Streaming in serial, forwards direction
+func Filter[E any](stream iter.Seq[E], filter func(E) bool) iter.Seq[E] {
+	return func(yield func(E) bool) {
+		for v := range stream {
 			if filter(v) {
 				if !yield(v) {
 					return
@@ -62,7 +84,7 @@ func Map[E, T any](stream iter.Seq[E], transform func(E) T) iter.Seq[T] {
 }
 
 // Reduce : Accumulate values into one
-func Reduce[E any, T any](arr []E, fn func(T, E) T, init T) T {
+func Reduce[E, T any](arr []E, fn func(T, E) T, init T) T {
 	acc := init
 	for _, v := range arr {
 		acc = fn(acc, v)
