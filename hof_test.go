@@ -8,10 +8,122 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/suryanshu-09/hof"
+	"github.com/DaDevFox/hof"
 )
 
-func TestMap(t *testing.T) {
+func BenchmarkExtraneousMapStreaming(b *testing.B) {
+	for b.Loop() {
+		inputArr := [][]int{
+			{1, 2, 3, 4, 5},
+			{-4, 0, 69, 12},
+			{0},
+		}
+
+		for _, val := range inputArr {
+			hof.Map(hof.Stream(val), func(j int) string {
+				switch {
+				case j > 0:
+					return fmt.Sprintf("this is %d", j)
+				case j == 0:
+					return "this is empty"
+				case j < 0:
+					return fmt.Sprintf("this is a neg %d", int(math.Abs(float64(j))))
+				default:
+					return fmt.Sprintf("incorrect input got %d", j)
+				}
+			})
+		}
+	}
+}
+
+func BenchmarkMap(b *testing.B) {
+	for b.Loop() {
+		inputArr := [][]int{
+			{1, 2, 3, 4, 5},
+			{-4, 0, 69, 12},
+			{0},
+		}
+
+		for _, val := range inputArr {
+			hof.MapArray(val, func(j int) string {
+				switch {
+				case j > 0:
+					return fmt.Sprintf("this is %d", j)
+				case j == 0:
+					return "this is empty"
+				case j < 0:
+					return fmt.Sprintf("this is a neg %d", int(math.Abs(float64(j))))
+				default:
+					return fmt.Sprintf("incorrect input got %d", j)
+				}
+			})
+		}
+	}
+}
+
+func BenchmarkMapChainStreaming(b *testing.B) {
+	for b.Loop() {
+		inputArr := [][]int{
+			{1, 2, 3, 4, 5},
+			{-4, 0, 69, 12},
+			{0},
+		}
+
+		for _, val := range inputArr {
+			slices.Collect(hof.Map(hof.Filter(hof.MapArray(val, func(j int) string {
+				switch {
+				case j > 0:
+					return fmt.Sprintf("this is %d", j)
+				case j == 0:
+					return "this is empty"
+				case j < 0:
+					return fmt.Sprintf("this is a neg %d", int(math.Abs(float64(j))))
+				default:
+					return fmt.Sprintf("incorrect input got %d", j)
+				}
+			}),
+				func(a string) bool {
+					return len(a) < 10
+				}),
+				func(b string) string {
+					return "padded: " + b
+				}))
+		}
+	}
+}
+
+func BenchmarkMapChain(b *testing.B) {
+	for b.Loop() {
+		inputArr := [][]int{
+			{1, 2, 3, 4, 5},
+			{-4, 0, 69, 12},
+			{0},
+		}
+
+		for _, val := range inputArr {
+			hof.MapArray(slices.Collect(hof.FilterArray(slices.Collect(hof.MapArray(val, func(j int) string {
+				switch {
+				case j > 0:
+					return fmt.Sprintf("this is %d", j)
+				case j == 0:
+					return "this is empty"
+				case j < 0:
+					return fmt.Sprintf("this is a neg %d", int(math.Abs(float64(j))))
+				default:
+					return fmt.Sprintf("incorrect input got %d", j)
+				}
+			})),
+				func(a string) bool {
+					return len(a) < 10
+				})),
+				func(b string) string {
+					return "padded: " + b
+				})
+		}
+	}
+}
+
+func TestMapArray(t *testing.T) {
 	t.Run("int to main", func(t *testing.T) {
 		inputArr := [][]int{
 			{1, 2, 3, 4, 5},
@@ -27,7 +139,7 @@ func TestMap(t *testing.T) {
 
 		for idx, val := range inputArr {
 			var req []string
-			for i := range hof.Map(val, func(j int) string {
+			for i := range hof.MapArray(val, func(j int) string {
 				switch {
 				case j > 0:
 					return fmt.Sprintf("this is %d", j)
@@ -64,7 +176,7 @@ func TestMap(t *testing.T) {
 
 		for idx, val := range inputArr {
 			var req []int
-			for sq := range hof.Map(val, func(x int) int { return x * x }) {
+			for sq := range hof.MapArray(val, func(x int) int { return x * x }) {
 				req = append(req, sq)
 			}
 			if !reflect.DeepEqual(req, outputArr[idx]) {
@@ -103,7 +215,7 @@ func TestFilter(t *testing.T) {
 		}
 		for idx, val := range inputArr {
 			req := []string{}
-			for v := range hof.Filter(val, filterArr[idx]) {
+			for v := range hof.FilterArray(val, filterArr[idx]) {
 				req = append(req, v)
 			}
 
@@ -218,7 +330,7 @@ func TestForEach(t *testing.T) {
 		var buf bytes.Buffer
 
 		inpArr := []int{1, 2, 3, 4, 5}
-		hof.ForEach(inpArr, func(x int) {
+		hof.ForEachArray(inpArr, func(x int) {
 			buf.WriteString(fmt.Sprintf("%d\n", x))
 		})
 
@@ -1003,7 +1115,7 @@ func TestMapEarlyTermination(t *testing.T) {
 	var result []string
 
 	// Break after processing 2 elements to trigger early return in Map
-	for val := range hof.Map(input, func(i int) string {
+	for val := range hof.MapArray(input, func(i int) string {
 		return fmt.Sprintf("item_%d", i)
 	}) {
 		result = append(result, val)
@@ -1023,7 +1135,7 @@ func TestFilterEarlyTermination(t *testing.T) {
 	var result []int
 
 	// Break after finding 2 even numbers to trigger early return in Filter
-	for val := range hof.Filter(input, func(i int) bool {
+	for val := range hof.FilterArray(input, func(i int) bool {
 		return i%2 == 0
 	}) {
 		result = append(result, val)
