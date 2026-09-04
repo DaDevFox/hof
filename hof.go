@@ -98,8 +98,17 @@ func ReduceStreaming[E, T any](stream iter.Seq[E], fn func(T, E) T, init T) T {
 }
 
 // ForEach : Apply side-effects (printing, logging, etc.)
-func ForEach[E any](arr []E, fn func(E)) {
+// Collected (array) input + execution in serial
+func ForEachArray[E any](arr []E, fn func(E)) {
 	for _, v := range arr {
+		fn(v)
+	}
+}
+
+// ForEach : Apply side-effects (printing, logging, etc.).
+// Streaming in serial, forwards direction
+func ForEach[E any](stream iter.Seq[E], fn func(E)) {
+	for v := range stream {
 		fn(v)
 	}
 }
