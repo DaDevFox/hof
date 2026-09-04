@@ -92,6 +92,11 @@ func Reduce[E, T any](arr []E, fn func(T, E) T, init T) T {
 	return acc
 }
 
+// Reduce : Accumulate values into one
+func ReduceStreaming[E, T any](stream iter.Seq[E], fn func(T, E) T, init T) T {
+	return Reduce(slices.Collect(stream), fn, init)
+}
+
 // ForEach : Apply side-effects (printing, logging, etc.)
 func ForEach[E any](arr []E, fn func(E)) {
 	for _, v := range arr {
@@ -110,9 +115,31 @@ func Find[E any](arr []E, fn func(E) bool) (E, bool) {
 	return out, false
 }
 
+// Find : Return first element satisfying condition
+func FindInSteram[E any](stream iter.Seq[E], fn func(E) bool) (E, bool) {
+	var out E
+	for v := range stream {
+		if fn(v) {
+			return v, true
+		}
+	}
+	return out, false
+}
+
+// Some : Return true if any element matches
+func SomeInStream[E any](arr iter.Seq[E], fn func(E) bool) bool {
+	return slices.ContainsFunc(slices.Collect(arr), fn)
+}
+
 // Some : Return true if any element matches
 func Some[E any](arr []E, fn func(E) bool) bool {
 	return slices.ContainsFunc(arr, fn)
+}
+
+func EveryInStream[E any](arr iter.Seq[E], fn func(E) bool) bool {
+	return ReduceStreaming(arr, func(accum bool, item E) bool {
+		return accum && fn(item)
+	}, false)
 }
 
 // Every : Return true if all elements match
