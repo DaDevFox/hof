@@ -8,8 +8,24 @@ import (
 
 // Core Array Methods
 
+// Filter : Keep elements that satisfy a condition
+func Filter[E any](arr []E, filter func(E) bool) iter.Seq[E] {
+	return func(yield func(E) bool) {
+		for _, v := range arr {
+func Stream[T any](arr []T) iter.Seq[T] {
+	return func(yield func(T) bool) {
+		for _, v := range arr {
+			proceed := yield(v)
+			if !proceed {
+				return
+			}
+		}
+	}
+}
+
 // Map : Transform each element
-func Map[E, T any](arr []E, transform func(E) T) iter.Seq[T] {
+// Collected (array) input, streaming output in serial, forwards direction
+func MapArray[E, T any](arr []E, transform func(E) T) iter.Seq[T] {
 	return func(yield func(T) bool) {
 		for _, v := range arr {
 			if !yield(transform(v)) {
@@ -19,10 +35,23 @@ func Map[E, T any](arr []E, transform func(E) T) iter.Seq[T] {
 	}
 }
 
-// Filter : Keep elements that satisfy a condition
-func Filter[E any](arr []E, filter func(E) bool) iter.Seq[E] {
-	return func(yield func(E) bool) {
-		for _, v := range arr {
+// Map : Transform each element
+// Collected (array) input + output in serial, forwards direction
+func MapToArray[E, T any](arr []E, transform func(E) T) []T {
+	return slices.Collect(MapArray(arr, transform))
+}
+
+// Map : Transform each element
+// Bidi streaming in serial, forwards direction
+func Map[E, T any](stream iter.Seq[E], transform func(E) T) iter.Seq[T] {
+	return func(yield func(T) bool) {
+		for v := range stream {
+			if !yield(transform(v)) {
+				return
+			}
+		}
+	}
+}
 			if filter(v) {
 				if !yield(v) {
 					return
